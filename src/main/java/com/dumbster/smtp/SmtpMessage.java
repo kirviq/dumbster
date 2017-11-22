@@ -47,6 +47,17 @@ public class SmtpMessage {
 	 * @param params   remainder of input line after SMTP command has been removed
 	 */
 	public void store(SmtpResponse response, String params) {
+		store(response, params, false);
+	}
+	/**
+	 * Update the headers or body depending on the SmtpResponse object and line of input.
+	 * Adds an optional newline character at the end to support multipart messages
+	 *
+	 * @param response SmtpResponse object
+	 * @param params   remainder of input line after SMTP command has been removed
+	 * @param addnl    adds a newline '\n' character at the end of the line
+	 */
+	public void store(SmtpResponse response, String params, boolean addnl) {
 		if (params != null) {
 			if (SmtpState.DATA_HDR.equals(response.getNextState())) {
 				int headerNameEnd = params.indexOf(':');
@@ -57,6 +68,7 @@ public class SmtpMessage {
 				}
 			} else if (SmtpState.DATA_BODY == response.getNextState()) {
 				body.append(params);
+				if (addnl) body.append('\n');
 			}
 		}
 	}
