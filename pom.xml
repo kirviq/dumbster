@@ -22,7 +22,7 @@
 
 	<groupId>com.github.kirviq</groupId>
 	<artifactId>dumbster</artifactId>
-	<version>1.8-SNAPSHOT</version>
+	<version>1.9-SNAPSHOT</version>
 
 	<name>dumbster</name>
 	<description>a simple fake SMTP server for unit testing</description>

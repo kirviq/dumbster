@@ -46,6 +46,8 @@ See more examples in the included [unit tests](https://github.com/kirviq/dumbste
 
 ### Changelog
 
-- 2018-02-06: Use ConcurrentLinkedQueue (FIFO) instead of ArrayList.
-  This extends current functionality with the possibility to pop (i.e.
-  get and remove) received messages.
+- 2018-02-06
+  - Use ConcurrentLinkedQueue (FIFO) instead of ArrayList. This extends
+    current functionality with the possibility to pop (i.e. get and
+    remove) received messages.
+  - JRE 8 is required for tests
