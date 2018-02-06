@@ -29,10 +29,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.*;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -51,8 +48,21 @@ public class SimpleSmtpServerTest {
 		server.stop();
 	}
 
-	@Test
-	public void testGetReceivedEmailCopy() throws MessagingException {
+    @Test
+    public void testPoll() throws MessagingException {
+        sendMessage(server.getPort(), "sender@here.com", "Test 1", "Test Body", "receiver@there.com");
+        sendMessage(server.getPort(), "sender@here.com", "Test 2", "Test Body", "receiver@there.com");
+        assertThat(server.getReceivedEmails(), hasSize(2));
+        SmtpMessage smtpMessage1 = server.getReceivedEmails().poll();
+        assertThat(smtpMessage1.getHeaderValue("Subject"), isOneOf("Test 1"));
+        assertThat(server.getReceivedEmails(), hasSize(1));
+        SmtpMessage smtpMessage2 = server.getReceivedEmails().poll();
+        assertThat(smtpMessage2.getHeaderValue("Subject"), isOneOf("Test 2"));
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
+    public void testGetReceivedEmailCopy() throws MessagingException {
         sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
         List<SmtpMessage> receivedEmailCopy = server.getReceivedEmailCopy();
         assertThat(receivedEmailCopy, hasSize(1));
@@ -64,7 +74,7 @@ public class SimpleSmtpServerTest {
         assertThat(server.getReceivedEmails(), hasSize(0));
     }
 
-	@Test
+    @Test
 	public void testSend() throws MessagingException {
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
 
