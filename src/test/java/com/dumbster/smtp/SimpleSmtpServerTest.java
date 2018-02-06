@@ -85,7 +85,7 @@ public class SimpleSmtpServerTest {
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
 		assertThat(server.getReceivedEmails(), hasSize(1));
 
-		server.getReceivedEmails().clear();
+		server.reset();
 		assertThat(server.getReceivedEmails(), hasSize(0));
 
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
