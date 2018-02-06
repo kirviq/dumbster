@@ -55,8 +55,8 @@ public class SimpleSmtpServerTest {
 	public void testSend() throws MessagingException {
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
 
-		assertThat(server.getReceivedMail(), hasSize(1));
-		SmtpMessage email = server.getReceivedMail().poll();
+		assertThat(server.getReceivedEmails(), hasSize(1));
+		SmtpMessage email = server.getReceivedEmails().poll();
 		assertThat(email.getHeaderValue("Subject"), is("Test"));
 		assertThat(email.getBody(), is("Test Body"));
 		assertThat(email.getHeaderNames(), hasItem("Date"));
@@ -70,13 +70,13 @@ public class SimpleSmtpServerTest {
 	@Test
 	public void testSendAndReset() throws MessagingException {
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
-		assertThat(server.getReceivedMail(), hasSize(1));
+		assertThat(server.getReceivedEmails(), hasSize(1));
 
-		server.getReceivedMail().clear();
-		assertThat(server.getReceivedMail(), hasSize(0));
+		server.getReceivedEmails().clear();
+		assertThat(server.getReceivedEmails(), hasSize(0));
 
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
-		assertThat(server.getReceivedMail(), hasSize(1));
+		assertThat(server.getReceivedEmails(), hasSize(1));
 	}
 
 	@Test
@@ -84,8 +84,8 @@ public class SimpleSmtpServerTest {
 		String bodyWithCR = "\n\nKeep these pesky carriage returns\n\n";
 		sendMessage(server.getPort(), "sender@hereagain.com", "CRTest", bodyWithCR, "receivingagain@there.com");
 
-		assertThat(server.getReceivedMail(), hasSize(1));
-		SmtpMessage email = server.getReceivedMail().poll();
+		assertThat(server.getReceivedEmails(), hasSize(1));
+		SmtpMessage email = server.getReceivedEmails().poll();
 		assertEquals(bodyWithCR, email.getBody());
 	}
 
@@ -108,7 +108,7 @@ public class SimpleSmtpServerTest {
 
 		transport.close();
 
-		assertThat(server.getReceivedMail(), hasSize(2));
+		assertThat(server.getReceivedEmails(), hasSize(2));
 	}
 
 	@Test
@@ -156,8 +156,8 @@ public class SimpleSmtpServerTest {
 			}
 		}
 
-		assertThat(server.getReceivedMail(), hasSize(2));
-		SmtpMessage email = server.getReceivedMail().poll();
+		assertThat(server.getReceivedEmails(), hasSize(2));
+		SmtpMessage email = server.getReceivedEmails().poll();
 		assertTrue(email.getHeaderValue("Subject").equals("Test"));
 		assertTrue(email.getBody().equals("Test Body"));
 	}

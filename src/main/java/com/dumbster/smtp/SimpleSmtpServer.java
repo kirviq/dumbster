@@ -49,7 +49,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
      * Store and offer received emails in a {@link Queue} object.
      * Implementation uses a unbounded and thread-safe {@link ConcurrentLinkedQueue}
      */
-	private final Queue<SmtpMessage> receivedMail = new ConcurrentLinkedQueue<>();
+	private final Queue<SmtpMessage> receivedEmails = new ConcurrentLinkedQueue<>();
 
 	/** The server socket this server listens to. */
 	private final ServerSocket serverSocket;
@@ -92,8 +92,8 @@ public final class SimpleSmtpServer implements AutoCloseable {
      * All received email stored in a thread-safe queue
      * @return all received email stored in a thread-safe queue
      */
-    public Queue<SmtpMessage> getReceivedMail() {
-        return receivedMail;
+    public Queue<SmtpMessage> getReceivedEmails() {
+        return receivedEmails;
     }
 
     /**
@@ -152,7 +152,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
 						 * We synchronize over the handle method and the list update because the client call completes inside
 						 * the handle method and we have to prevent the client from reading the list until we've updated it.
 						 */
-						receivedMail.addAll(handleTransaction(out, input));
+						receivedEmails.addAll(handleTransaction(out, input));
 
 				}
 			}
