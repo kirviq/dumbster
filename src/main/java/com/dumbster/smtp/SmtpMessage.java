@@ -40,26 +40,26 @@ public class SmtpMessage {
 		body = new StringBuilder();
 	}
 
-    /**
-     * Update the headers or body depending on the SmtpResponse object and line of input.
-     *
-     * @param response SmtpResponse object
-     * @param params   remainder of input line after SMTP command has been removed
-     */
-    public void store(SmtpResponse response, String params) {
-        if (params != null) {
-            if (SmtpState.DATA_HDR.equals(response.getNextState())) {
-                int headerNameEnd = params.indexOf(':');
-                if (headerNameEnd >= 0) {
-                    String name = params.substring(0, headerNameEnd).trim();
-                    String value = params.substring(headerNameEnd + 1).trim();
-                    addHeader(name, value);
-                }
-            } else if (SmtpState.DATA_BODY == response.getNextState()) {
-                body.append(params);
-            }
-        }
-    }
+	/**
+	 * Update the headers or body depending on the SmtpResponse object and line of input.
+	 *
+	 * @param response SmtpResponse object
+	 * @param params   remainder of input line after SMTP command has been removed
+	 */
+	public void store(SmtpResponse response, String params) {
+		if (params != null) {
+			if (SmtpState.DATA_HDR.equals(response.getNextState())) {
+				int headerNameEnd = params.indexOf(':');
+				if (headerNameEnd >= 0) {
+					String name = params.substring(0, headerNameEnd).trim();
+					String value = params.substring(headerNameEnd + 1).trim();
+					addHeader(name, value);
+				}
+			} else if (SmtpState.DATA_BODY == response.getNextState()) {
+				body.append(params);
+			}
+		}
+	}
 
 	/**
 	 * Get an Iterator over the header names.
