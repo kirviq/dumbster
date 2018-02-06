@@ -52,6 +52,19 @@ public class SimpleSmtpServerTest {
 	}
 
 	@Test
+	public void testGetReceivedEmailCopy() throws MessagingException {
+        sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
+        List<SmtpMessage> receivedEmailCopy = server.getReceivedEmailCopy();
+        assertThat(receivedEmailCopy, hasSize(1));
+        receivedEmailCopy.clear();
+        assertThat(receivedEmailCopy, hasSize(0));
+        assertThat(server.getReceivedEmailCopy(), hasSize(1));
+        server.getReceivedEmails().clear();
+        assertThat(server.getReceivedEmailCopy(), hasSize(0));
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+	@Test
 	public void testSend() throws MessagingException {
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
 

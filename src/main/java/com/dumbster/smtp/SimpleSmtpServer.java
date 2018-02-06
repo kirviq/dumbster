@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /** Dummy SMTP server for testing purposes. */
 @Slf4j
@@ -96,14 +97,32 @@ public final class SimpleSmtpServer implements AutoCloseable {
     }
 
     /**
-     * All received email stored in a thread-safe queue
+     * All received email stored in a thread-safe queue.
+     * The returned object is the backing object of the received data.
+     * Deleting or modifying data in the returned object is a destructive operation.
      * @return all received email stored in a thread-safe queue
      */
     public Queue<SmtpMessage> getReceivedEmails() {
         return receivedEmails;
     }
 
-	/**
+    /**
+     * All received email copied in a {@link ArrayList} to support the original semantics.
+     * Modifying this list does not change the backing queue {@link #getReceivedEmails()}.
+     * @return all received email copied in a Array List
+     */
+    public List<SmtpMessage> getReceivedEmailCopy() {
+        return receivedEmails.stream().collect(Collectors.<SmtpMessage>toList());
+    }
+
+    /**
+     * forgets all received emails
+     */
+    public void reset() {
+        getReceivedEmails().clear();
+    }
+
+    /**
 	 * Stops the server. Server is shutdown after processing of the current request is complete.
 	 */
 	public void stop() {
@@ -147,12 +166,13 @@ public final class SimpleSmtpServer implements AutoCloseable {
 				     Scanner input = new Scanner(new InputStreamReader(socket.getInputStream(), StandardCharsets.ISO_8859_1)).useDelimiter(CRLF);
 				     PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.ISO_8859_1));) {
 
+                    synchronized (receivedEmails) {
 						/*
-						 * We synchronize over the handle method and the list update because the client call completes inside
-						 * the handle method and we have to prevent the client from reading the list until we've updated it.
+						 * We synchronize over the handle method and the queue update because the client call completes inside
+						 * the handle method and we should to prevent the client from reading the list until we've updated it.
 						 */
-						receivedEmails.addAll(handleTransaction(out, input));
-
+                        receivedEmails.addAll(handleTransaction(out, input));
+                    }
 				}
 			}
 		} catch (Exception e) {
