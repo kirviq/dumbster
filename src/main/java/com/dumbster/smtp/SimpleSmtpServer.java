@@ -26,11 +26,8 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
 
 /** Dummy SMTP server for testing purposes. */
@@ -48,8 +45,8 @@ public final class SimpleSmtpServer implements AutoCloseable {
 
 	private static final Pattern CRLF = Pattern.compile("\r\n");
 
-	/** Stores all of the email received since this instance started up. */
-	private final List<SmtpMessage> receivedMail;
+    /** Stores all of the email received since this instance started up. */
+	private final Queue<SmtpMessage> receivedMail = new ConcurrentLinkedQueue<>();
 
 	/** The server socket this server listens to. */
 	private final ServerSocket serverSocket;
@@ -77,7 +74,6 @@ public final class SimpleSmtpServer implements AutoCloseable {
 	 * @param serverSocket socket to listen on
 	 */
 	private SimpleSmtpServer(ServerSocket serverSocket) {
-		this.receivedMail = new ArrayList<>();
 		this.serverSocket = serverSocket;
 		this.workerThread = new Thread(
 				new Runnable() {
@@ -89,30 +85,21 @@ public final class SimpleSmtpServer implements AutoCloseable {
 		this.workerThread.start();
 	}
 
-	/**
+    /**
+     * All received email stored in a thread-safe queue
+     * @return all received email stored in a thread-safe queue
+     */
+    public Queue<SmtpMessage> getReceivedMail() {
+        return receivedMail;
+    }
+
+    /**
 	 * @return the port the server is listening on
 	 */
 	public int getPort() {
 		return serverSocket.getLocalPort();
 	}
 
-	/**
-	 * @return list of {@link SmtpMessage}s received by since start up or last reset.
-	 */
-	public List<SmtpMessage> getReceivedEmails() {
-		synchronized (receivedMail) {
-			return Collections.unmodifiableList(new ArrayList<>(receivedMail));
-		}
-	}
-
-	/**
-	 * forgets all received emails
-	 */
-	public void reset() {
-		synchronized (receivedMail) {
-			receivedMail.clear();
-		}
-	}
 
 	/**
 	 * Stops the server. Server is shutdown after processing of the current request is complete.
@@ -158,13 +145,12 @@ public final class SimpleSmtpServer implements AutoCloseable {
 				     Scanner input = new Scanner(new InputStreamReader(socket.getInputStream(), StandardCharsets.ISO_8859_1)).useDelimiter(CRLF);
 				     PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.ISO_8859_1));) {
 
-					synchronized (receivedMail) {
 						/*
 						 * We synchronize over the handle method and the list update because the client call completes inside
 						 * the handle method and we have to prevent the client from reading the list until we've updated it.
 						 */
 						receivedMail.addAll(handleTransaction(out, input));
-					}
+
 				}
 			}
 		} catch (Exception e) {
