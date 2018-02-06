@@ -169,7 +169,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
                     synchronized (receivedEmails) {
 						/*
 						 * We synchronize over the handle method and the queue update because the client call completes inside
-						 * the handle method and we should to prevent the client from reading the list until we've updated it.
+						 * the handle method and we should prevent the client from reading the list until we've updated it.
 						 */
                         receivedEmails.addAll(handleTransaction(out, input));
                     }

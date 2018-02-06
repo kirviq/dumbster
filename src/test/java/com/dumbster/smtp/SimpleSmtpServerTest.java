@@ -62,6 +62,67 @@ public class SimpleSmtpServerTest {
     }
 
     @Test
+    public void testPerformanceSingleThread() throws MessagingException {
+        System.out.println("testPerformanceSingleThread");
+        long t1 = System.currentTimeMillis();
+        int loops = 10;
+        int inLoopCount = 1000;
+        for (int l = 1; l <= loops; l++) {
+            for (int i = 0; i < inLoopCount; i++) {
+                sendMessage(server.getPort(), "sender@here.com", "Test " + i, "Test Body", "receiver@there.com");
+            }
+            long t2 = System.currentTimeMillis();
+            int total = (int) ((t2-t1)/1000);
+            int avg = inLoopCount*l / total;
+            System.out.println("added " + inLoopCount*l + " emails in " + total + " seconds => " + avg + " emails/s");
+        }
+        assertThat(server.getReceivedEmails(), hasSize(inLoopCount*loops));
+
+        long t3 = System.currentTimeMillis();
+        for (int i = 0; i < inLoopCount*loops; i++) {
+            server.getReceivedEmails().poll();
+        }
+        long t4 = System.currentTimeMillis();
+        int total2 = (int) ((t4-t3==0?1:t4-t3));
+        int avg2 = inLoopCount*loops / total2;
+        System.out.println("polled " + inLoopCount*loops + " emails in " + total2 + " ms => " + avg2 + " emails/ms");
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
+    public void testPerformanceParallel() throws MessagingException {
+        System.out.println("testPerformanceParallel");
+        final int inLoopCount = 10000;
+        List<Integer> numbers = new ArrayList<Integer>(inLoopCount);
+        for (int i = 0; i < inLoopCount; i++) {
+            numbers.add(i);
+        }
+        long t1 = System.currentTimeMillis();
+        numbers.stream().parallel().forEach(i -> {
+            try {
+                sendMessage(server.getPort(), "sender@here.com", "Test " + i, "Test Body", "receiver@there.com");
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        });
+        long t2 = System.currentTimeMillis();
+        int total = (int) ((t2-t1)/1000);
+        int avg = inLoopCount / total;
+        System.out.println("added " + inLoopCount + " emails in " + total + " seconds => " + avg + " emails/s");
+        assertThat(server.getReceivedEmails(), hasSize(inLoopCount));
+
+        long t3 = System.currentTimeMillis();
+        for (int i = 0; i < inLoopCount; i++) {
+            server.getReceivedEmails().poll();
+        }
+        long t4 = System.currentTimeMillis();
+        int total2 = (int) ((t4-t3==0?1:t4-t3));
+        int avg2 = inLoopCount / total2;
+        System.out.println("polled " + inLoopCount + " emails in " + total2 + " ms => " + avg2 + " emails/ms");
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
     public void testGetReceivedEmailCopy() throws MessagingException {
         sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
         List<SmtpMessage> receivedEmailCopy = server.getReceivedEmailCopy();
