@@ -45,7 +45,10 @@ public final class SimpleSmtpServer implements AutoCloseable {
 
 	private static final Pattern CRLF = Pattern.compile("\r\n");
 
-    /** Stores all of the email received since this instance started up. */
+    /**
+     * Store and offer received emails with a {@link Queue}.
+     * Implementation uses a unbounded and thread-safe {@link ConcurrentLinkedQueue}
+     */
 	private final Queue<SmtpMessage> receivedMail = new ConcurrentLinkedQueue<>();
 
 	/** The server socket this server listens to. */
