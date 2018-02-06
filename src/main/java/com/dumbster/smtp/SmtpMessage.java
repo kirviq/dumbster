@@ -17,7 +17,13 @@
  */
 package com.dumbster.smtp;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Container for a complete SMTP message - headers and message body.
