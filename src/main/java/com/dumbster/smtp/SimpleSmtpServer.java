@@ -89,20 +89,19 @@ public final class SimpleSmtpServer implements AutoCloseable {
 	}
 
     /**
+     * @return the port the server is listening on
+     */
+    public int getPort() {
+        return serverSocket.getLocalPort();
+    }
+
+    /**
      * All received email stored in a thread-safe queue
      * @return all received email stored in a thread-safe queue
      */
     public Queue<SmtpMessage> getReceivedEmails() {
         return receivedEmails;
     }
-
-    /**
-	 * @return the port the server is listening on
-	 */
-	public int getPort() {
-		return serverSocket.getLocalPort();
-	}
-
 
 	/**
 	 * Stops the server. Server is shutdown after processing of the current request is complete.
