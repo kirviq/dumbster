@@ -22,7 +22,7 @@
 
 	<groupId>com.github.kirviq</groupId>
 	<artifactId>dumbster</artifactId>
-	<version>1.8-SNAPSHOT</version>
+	<version>1.9-SNAPSHOT</version>
 
 	<name>dumbster</name>
 	<description>a simple fake SMTP server for unit testing</description>
@@ -65,8 +65,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.5.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 			<plugin>

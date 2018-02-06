@@ -29,10 +29,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.*;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -51,13 +48,99 @@ public class SimpleSmtpServerTest {
 		server.stop();
 	}
 
-	@Test
+    @Test
+    public void testPoll() throws MessagingException {
+        sendMessage(server.getPort(), "sender@here.com", "Test 1", "Test Body", "receiver@there.com");
+        sendMessage(server.getPort(), "sender@here.com", "Test 2", "Test Body", "receiver@there.com");
+        assertThat(server.getReceivedEmails(), hasSize(2));
+        SmtpMessage smtpMessage1 = server.getReceivedEmails().poll();
+        assertThat(smtpMessage1.getHeaderValue("Subject"), isOneOf("Test 1"));
+        assertThat(server.getReceivedEmails(), hasSize(1));
+        SmtpMessage smtpMessage2 = server.getReceivedEmails().poll();
+        assertThat(smtpMessage2.getHeaderValue("Subject"), isOneOf("Test 2"));
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
+    public void testPerformanceSingleThread() throws MessagingException {
+        System.out.println("testPerformanceSingleThread");
+        long t1 = System.currentTimeMillis();
+        int loops = 10;
+        int inLoopCount = 1000;
+        for (int l = 1; l <= loops; l++) {
+            for (int i = 0; i < inLoopCount; i++) {
+                sendMessage(server.getPort(), "sender@here.com", "Test " + i, "Test Body", "receiver@there.com");
+            }
+            long t2 = System.currentTimeMillis();
+            int total = (int) ((t2-t1)/1000);
+            int avg = inLoopCount*l / total;
+            System.out.println("added " + inLoopCount*l + " emails in " + total + " seconds => " + avg + " emails/s");
+        }
+        assertThat(server.getReceivedEmails(), hasSize(inLoopCount*loops));
+
+        long t3 = System.currentTimeMillis();
+        for (int i = 0; i < inLoopCount*loops; i++) {
+            server.getReceivedEmails().poll();
+        }
+        long t4 = System.currentTimeMillis();
+        int total2 = (int) ((t4-t3==0?1:t4-t3));
+        int avg2 = inLoopCount*loops / total2;
+        System.out.println("polled " + inLoopCount*loops + " emails in " + total2 + " ms => " + avg2 + " emails/ms");
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
+    public void testPerformanceParallel() throws MessagingException {
+        System.out.println("testPerformanceParallel");
+        final int inLoopCount = 10000;
+        List<Integer> numbers = new ArrayList<Integer>(inLoopCount);
+        for (int i = 0; i < inLoopCount; i++) {
+            numbers.add(i);
+        }
+        long t1 = System.currentTimeMillis();
+        numbers.stream().parallel().forEach(i -> {
+            try {
+                sendMessage(server.getPort(), "sender@here.com", "Test " + i, "Test Body", "receiver@there.com");
+            } catch (MessagingException e) {
+                e.printStackTrace();
+            }
+        });
+        long t2 = System.currentTimeMillis();
+        int total = (int) ((t2-t1)/1000);
+        int avg = inLoopCount / total;
+        System.out.println("added " + inLoopCount + " emails in " + total + " seconds => " + avg + " emails/s");
+        assertThat(server.getReceivedEmails(), hasSize(inLoopCount));
+
+        long t3 = System.currentTimeMillis();
+        for (int i = 0; i < inLoopCount; i++) {
+            server.getReceivedEmails().poll();
+        }
+        long t4 = System.currentTimeMillis();
+        int total2 = (int) ((t4-t3==0?1:t4-t3));
+        int avg2 = inLoopCount / total2;
+        System.out.println("polled " + inLoopCount + " emails in " + total2 + " ms => " + avg2 + " emails/ms");
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
+    public void testGetReceivedEmailCopy() throws MessagingException {
+        sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
+        List<SmtpMessage> receivedEmailCopy = server.getReceivedEmailCopy();
+        assertThat(receivedEmailCopy, hasSize(1));
+        receivedEmailCopy.clear();
+        assertThat(receivedEmailCopy, hasSize(0));
+        assertThat(server.getReceivedEmailCopy(), hasSize(1));
+        server.getReceivedEmails().clear();
+        assertThat(server.getReceivedEmailCopy(), hasSize(0));
+        assertThat(server.getReceivedEmails(), hasSize(0));
+    }
+
+    @Test
 	public void testSend() throws MessagingException {
 		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
 
-		List<SmtpMessage> emails = server.getReceivedEmails();
-		assertThat(emails, hasSize(1));
-		SmtpMessage email = emails.get(0);
+		assertThat(server.getReceivedEmails(), hasSize(1));
+		SmtpMessage email = server.getReceivedEmails().poll();
 		assertThat(email.getHeaderValue("Subject"), is("Test"));
 		assertThat(email.getBody(), is("Test Body"));
 		assertThat(email.getHeaderNames(), hasItem("Date"));
@@ -85,9 +168,8 @@ public class SimpleSmtpServerTest {
 		String bodyWithCR = "\n\nKeep these pesky carriage returns\n\n";
 		sendMessage(server.getPort(), "sender@hereagain.com", "CRTest", bodyWithCR, "receivingagain@there.com");
 
-		List<SmtpMessage> emails = server.getReceivedEmails();
-		assertThat(emails, hasSize(1));
-		SmtpMessage email = emails.get(0);
+		assertThat(server.getReceivedEmails(), hasSize(1));
+		SmtpMessage email = server.getReceivedEmails().poll();
 		assertEquals(bodyWithCR, email.getBody());
 	}
 
@@ -158,9 +240,8 @@ public class SimpleSmtpServerTest {
 			}
 		}
 
-		List<SmtpMessage> emails = this.server.getReceivedEmails();
-		assertThat(emails, hasSize(2));
-		SmtpMessage email = emails.get(0);
+		assertThat(server.getReceivedEmails(), hasSize(2));
+		SmtpMessage email = server.getReceivedEmails().poll();
 		assertTrue(email.getHeaderValue("Subject").equals("Test"));
 		assertTrue(email.getBody().equals("Test Body"));
 	}

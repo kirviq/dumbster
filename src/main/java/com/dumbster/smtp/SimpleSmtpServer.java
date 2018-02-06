@@ -26,12 +26,10 @@ import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /** Dummy SMTP server for testing purposes. */
 @Slf4j
@@ -48,8 +46,11 @@ public final class SimpleSmtpServer implements AutoCloseable {
 
 	private static final Pattern CRLF = Pattern.compile("\r\n");
 
-	/** Stores all of the email received since this instance started up. */
-	private final List<SmtpMessage> receivedMail;
+    /**
+     * Store and offer received emails in a {@link Queue} object.
+     * Implementation uses a unbounded and thread-safe {@link ConcurrentLinkedQueue}
+     */
+	private final Queue<SmtpMessage> receivedEmails = new ConcurrentLinkedQueue<>();
 
 	/** The server socket this server listens to. */
 	private final ServerSocket serverSocket;
@@ -77,7 +78,6 @@ public final class SimpleSmtpServer implements AutoCloseable {
 	 * @param serverSocket socket to listen on
 	 */
 	private SimpleSmtpServer(ServerSocket serverSocket) {
-		this.receivedMail = new ArrayList<>();
 		this.serverSocket = serverSocket;
 		this.workerThread = new Thread(
 				new Runnable() {
@@ -89,32 +89,40 @@ public final class SimpleSmtpServer implements AutoCloseable {
 		this.workerThread.start();
 	}
 
-	/**
-	 * @return the port the server is listening on
-	 */
-	public int getPort() {
-		return serverSocket.getLocalPort();
-	}
+    /**
+     * @return the port the server is listening on
+     */
+    public int getPort() {
+        return serverSocket.getLocalPort();
+    }
 
-	/**
-	 * @return list of {@link SmtpMessage}s received by since start up or last reset.
-	 */
-	public List<SmtpMessage> getReceivedEmails() {
-		synchronized (receivedMail) {
-			return Collections.unmodifiableList(new ArrayList<>(receivedMail));
-		}
-	}
+    /**
+     * All received email stored in a thread-safe queue.
+     * The returned object is the backing object of the received data.
+     * Deleting or modifying data in the returned object is a destructive operation.
+     * @return all received email stored in a thread-safe queue
+     */
+    public Queue<SmtpMessage> getReceivedEmails() {
+        return receivedEmails;
+    }
 
-	/**
-	 * forgets all received emails
-	 */
-	public void reset() {
-		synchronized (receivedMail) {
-			receivedMail.clear();
-		}
-	}
+    /**
+     * All received email copied in a {@link ArrayList} to support the original semantics.
+     * Modifying this list does not change the backing queue {@link #getReceivedEmails()}.
+     * @return all received email copied in a Array List
+     */
+    public List<SmtpMessage> getReceivedEmailCopy() {
+        return receivedEmails.stream().collect(Collectors.<SmtpMessage>toList());
+    }
 
-	/**
+    /**
+     * forgets all received emails
+     */
+    public void reset() {
+        getReceivedEmails().clear();
+    }
+
+    /**
 	 * Stops the server. Server is shutdown after processing of the current request is complete.
 	 */
 	public void stop() {
@@ -158,13 +166,13 @@ public final class SimpleSmtpServer implements AutoCloseable {
 				     Scanner input = new Scanner(new InputStreamReader(socket.getInputStream(), StandardCharsets.ISO_8859_1)).useDelimiter(CRLF);
 				     PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.ISO_8859_1));) {
 
-					synchronized (receivedMail) {
+                    synchronized (receivedEmails) {
 						/*
-						 * We synchronize over the handle method and the list update because the client call completes inside
-						 * the handle method and we have to prevent the client from reading the list until we've updated it.
+						 * We synchronize over the handle method and the queue update because the client call completes inside
+						 * the handle method and we should prevent the client from reading the list until we've updated it.
 						 */
-						receivedMail.addAll(handleTransaction(out, input));
-					}
+                        receivedEmails.addAll(handleTransaction(out, input));
+                    }
 				}
 			}
 		} catch (Exception e) {

@@ -43,3 +43,11 @@ class SomeTest {
 }
 ```
 See more examples in the included [unit tests](https://github.com/kirviq/dumbster/blob/master/src/test/java/com/dumbster/smtp/SimpleSmtpServerTest.java).
+
+### Changelog
+
+- 2018-02-06
+  - Use ConcurrentLinkedQueue (FIFO) instead of ArrayList. This extends
+    current functionality with the possibility to pop (i.e. get and
+    remove) received messages.
+  - JRE 8 is required for tests
