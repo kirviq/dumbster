@@ -53,13 +53,13 @@ public class SimpleSmtpServerTest {
 
 	@Test
 	public void testSend() throws MessagingException {
-		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com");
+		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body\r\nNew sentence", "receiver@there.com");
 
 		List<SmtpMessage> emails = server.getReceivedEmails();
 		assertThat(emails, hasSize(1));
 		SmtpMessage email = emails.get(0);
 		assertThat(email.getHeaderValue("Subject"), is("Test"));
-		assertThat(email.getBody(), is("Test Body"));
+		assertThat(email.getBody(), is("Test Body\r\nNew sentence"));
 		assertThat(email.getHeaderNames(), hasItem("Date"));
 		assertThat(email.getHeaderNames(), hasItem("From"));
 		assertThat(email.getHeaderNames(), hasItem("To"));
@@ -82,13 +82,12 @@ public class SimpleSmtpServerTest {
 
 	@Test
 	public void testSendMessageWithCR() throws MessagingException {
-		String bodyWithCR = "\n\nKeep these pesky carriage returns\n\n";
-		sendMessage(server.getPort(), "sender@hereagain.com", "CRTest", bodyWithCR, "receivingagain@there.com");
+		sendMessage(server.getPort(), "sender@hereagain.com", "CRTest", "\n\nKeep these pesky carriage returns\n\n", "receivingagain@there.com");
 
 		List<SmtpMessage> emails = server.getReceivedEmails();
 		assertThat(emails, hasSize(1));
 		SmtpMessage email = emails.get(0);
-		assertEquals(bodyWithCR, email.getBody());
+		assertEquals("\r\n\r\nKeep these pesky carriage returns\r\n\r\n", email.getBody());
 	}
 
 	@Test

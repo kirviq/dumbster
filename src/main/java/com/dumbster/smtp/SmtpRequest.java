@@ -170,11 +170,7 @@ class SmtpRequest {
 				action = SmtpActionType.DATA_END;
 			} else {
 				action = SmtpActionType.UNRECOG;
-				if (s.length() < 1) {
-					params = "\n";
-				} else {
-					params = s;
-				}
+				params = s;
 			}
 		} else {
 			String su = s.toUpperCase();

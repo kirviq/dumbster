@@ -32,12 +32,12 @@ public class SmtpMessage {
 	/** Headers: Map of List of String hashed on header name. */
 	private Map<String, List<String>> headers;
 	/** Message body. */
-	private StringBuilder body;
+	private List<String> body;
 
 	/** Constructor. Initializes headers Map and body buffer. */
 	public SmtpMessage() {
 		headers = new LinkedHashMap<>(10);
-		body = new StringBuilder();
+		body = new ArrayList<>();
 	}
 
 	/**
@@ -56,7 +56,7 @@ public class SmtpMessage {
 					addHeader(name, value);
 				}
 			} else if (SmtpState.DATA_BODY == response.getNextState()) {
-				body.append(params);
+				body.add(params);
 			}
 		}
 	}
@@ -106,7 +106,16 @@ public class SmtpMessage {
 	 * @return message body
 	 */
 	public String getBody() {
-		return body.toString();
+		StringBuilder sb = new StringBuilder();
+
+		for(int i = 0;i<body.size();i++) {
+			String line = body.get(i);
+			sb.append(line);
+			if(i<body.size()-1) {
+				sb.append("\r\n");
+			}
+		}
+		return sb.toString();
 	}
 
 	/**

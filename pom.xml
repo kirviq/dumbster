@@ -22,7 +22,21 @@
 
 	<groupId>com.github.kirviq</groupId>
 	<artifactId>dumbster</artifactId>
-	<version>1.8-SNAPSHOT</version>
+	<version>1.8.AWL</version>
+
+	<scm>
+		<connection>scm:git:https://github.com/worldline-messaging/dumbster</connection>
+		<developerConnection>scm:git:https://github.com/worldline-messaging/dumbster</developerConnection>
+		<url>scm:git:https://github.com/worldline-messaging/dumbster</url>
+	</scm>
+
+	<distributionManagement>
+		<repository>
+			<id>bintray-worldline-messaging-org-maven</id>
+			<name>worldline-messaging-org-maven</name>
+			<url>https://api.bintray.com/maven/worldline-messaging-org/maven/dumbster/;publish=1</url>
+		</repository>
+	</distributionManagement>
 
 	<name>dumbster</name>
 	<description>a simple fake SMTP server for unit testing</description>
@@ -48,12 +62,6 @@
 		</developer>
 	</developers>
 
-	<scm>
-		<connection>scm:git:git@github.com:kirviq/dumbster.git</connection>
-		<developerConnection>scm:git:git@github.com:kirviq/dumbster.git</developerConnection>
-		<url>git@github.com:kirviq/dumbster.git</url>
-	</scm>
-
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
@@ -65,8 +73,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.5.1</version>
 				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
+					<source>8</source>
+					<target>8</target>
 				</configuration>
 			</plugin>
 			<plugin>
