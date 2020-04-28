@@ -204,11 +204,19 @@ public final class SimpleSmtpServer implements AutoCloseable {
 		SmtpMessage msg = new SmtpMessage();
 
 		while (smtpState != SmtpState.CONNECT) {
-			String line = input.next();
-
-			if (line == null) {
-				break;
+			String line=null;
+			try {
+				line = input.next();
 			}
+			catch (Exception e){
+				e.printStackTrace();
+			}
+			finally {
+				if (line == null) {
+					break;
+				}
+			}
+
 
 			// Create request from client input and current state
 			SmtpRequest request = SmtpRequest.createRequest(line, smtpState);
