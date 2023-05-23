@@ -208,4 +208,12 @@ class SmtpRequest {
 
 		return new SmtpRequest(action, params, state);
 	}
+
+	public String getParams() {
+		return params;
+	}
+
+	public SmtpActionType getAction() {
+		return action;
+	}
 }
