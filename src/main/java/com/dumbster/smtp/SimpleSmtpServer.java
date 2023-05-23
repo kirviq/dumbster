@@ -220,8 +220,7 @@ public final class SimpleSmtpServer implements AutoCloseable {
 			sendResponse(out, response);
 
 			// Store input in message
-			String params = request.params;
-			msg.store(response, params);
+			msg.store(request, response);
 
 			// If message reception is complete save it
 			if (smtpState == SmtpState.QUIT) {

@@ -17,6 +17,7 @@
  */
 package com.dumbster.smtp;
 
+import lombok.val;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,10 +30,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.util.*;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -66,6 +64,77 @@ public class SimpleSmtpServerTest {
 		assertThat(email.getHeaderNames(), hasItem("Subject"));
 		assertThat(email.getHeaderValues("To"), contains("receiver@there.com"));
 		assertThat(email.getHeaderValue("To"), is("receiver@there.com"));
+		assertEquals("Wrong number of recipients", 1, email.getRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getRecipients().get(0));
+	}
+
+	@Test
+	public void testSendMultiple() throws MessagingException {
+		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com,receiver2@there.com");
+
+		List<SmtpMessage> emails = server.getReceivedEmails();
+		assertThat(emails, hasSize(1));
+		SmtpMessage email = emails.get(0);
+		assertThat(email.getHeaderValue("Subject"), is("Test"));
+		assertThat(email.getBody(), is("Test Body"));
+		assertThat(email.getHeaderNames(), hasItem("Date"));
+		assertThat(email.getHeaderNames(), hasItem("From"));
+		assertThat(email.getHeaderNames(), hasItem("To"));
+		assertThat(email.getHeaderNames(), hasItem("Subject"));
+		assertEquals("Wrong number of recipients", 2, email.getRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getRecipients().get(0));
+		assertEquals("Wrong recipient", "<receiver2@there.com>", email.getRecipients().get(1));
+		assertEquals("Wrong number of TO recipients", 2, email.getToRecipients().size());
+		assertEquals("Wrong number of CC recipients", 0, email.getCcRecipients().size());
+		assertEquals("Wrong number of BCC recipients", 0, email.getBccRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getToRecipients().get(0));
+		assertEquals("Wrong recipient", "<receiver2@there.com>", email.getToRecipients().get(1));
+	}
+
+	@Test
+	public void testSendBcc() throws MessagingException {
+		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com,receiver2@there.com", Message.RecipientType.BCC);
+
+		List<SmtpMessage> emails = server.getReceivedEmails();
+		assertThat(emails, hasSize(1));
+		SmtpMessage email = emails.get(0);
+		assertThat(email.getHeaderValue("Subject"), is("Test"));
+		assertThat(email.getBody(), is("Test Body"));
+		assertThat(email.getHeaderNames(), hasItem("Date"));
+		assertThat(email.getHeaderNames(), hasItem("From"));
+		assertThat(email.getHeaderNames(), not(hasItem("To")));
+		assertThat(email.getHeaderNames(), hasItem("Subject"));
+		assertEquals("Wrong number of recipients", 2, email.getRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getRecipients().get(0));
+		assertEquals("Wrong recipient", "<receiver2@there.com>", email.getRecipients().get(1));
+		assertEquals("Wrong number of TO recipients", 0, email.getToRecipients().size());
+		assertEquals("Wrong number of CC recipients", 0, email.getCcRecipients().size());
+		assertEquals("Wrong number of BCC recipients", 2, email.getBccRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getBccRecipients().get(0));
+		assertEquals("Wrong recipient", "<receiver2@there.com>", email.getBccRecipients().get(1));
+	}
+
+	@Test
+	public void testSendCc() throws MessagingException {
+		sendMessage(server.getPort(), "sender@here.com", "Test", "Test Body", "receiver@there.com,receiver2@there.com", Message.RecipientType.CC);
+
+		List<SmtpMessage> emails = server.getReceivedEmails();
+		assertThat(emails, hasSize(1));
+		SmtpMessage email = emails.get(0);
+		assertThat(email.getHeaderValue("Subject"), is("Test"));
+		assertThat(email.getBody(), is("Test Body"));
+		assertThat(email.getHeaderNames(), hasItem("Date"));
+		assertThat(email.getHeaderNames(), hasItem("From"));
+		assertThat(email.getHeaderNames(), not(hasItem("To")));
+		assertThat(email.getHeaderNames(), hasItem("Subject"));
+		assertEquals("Wrong number of recipients", 2, email.getRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getRecipients().get(0));
+		assertEquals("Wrong recipient", "<receiver2@there.com>", email.getRecipients().get(1));
+		assertEquals("Wrong number of TO recipients", 0, email.getToRecipients().size());
+		assertEquals("Wrong number of BCC recipients", 0, email.getBccRecipients().size());
+		assertEquals("Wrong number of CC recipients", 2, email.getCcRecipients().size());
+		assertEquals("Wrong recipient", "<receiver@there.com>", email.getCcRecipients().get(0));
+		assertEquals("Wrong recipient", "<receiver2@there.com>", email.getCcRecipients().get(1));
 	}
 
 	@Test
@@ -97,8 +166,8 @@ public class SimpleSmtpServerTest {
 		Properties mailProps = getMailProperties(server.getPort());
 		Session session = Session.getInstance(mailProps, null);
 
-		mimeMessages[0] = createMessage(session, "sender@whatever.com", "receiver@home.com", "Doodle1", "Bug1");
-		mimeMessages[1] = createMessage(session, "sender@whatever.com", "receiver@home.com", "Doodle2", "Bug2");
+		mimeMessages[0] = createMessage(session, "sender@whatever.com", "receiver@home.com", "Doodle1", "Bug1", Message.RecipientType.TO);
+		mimeMessages[1] = createMessage(session, "sender@whatever.com", "receiver@home.com", "Doodle2", "Bug2", Message.RecipientType.TO);
 
 		Transport transport = session.getTransport("smtp");
 		transport.connect("localhost", server.getPort(), null, null);
@@ -175,22 +244,33 @@ public class SimpleSmtpServerTest {
 
 
 	private void sendMessage(int port, String from, String subject, String body, String to) throws MessagingException {
+		sendMessage(port, from, subject, body, to, Message.RecipientType.TO);
+	}
+
+	private void sendMessage(int port, String from, String subject, String body, String to, Message.RecipientType recipientType) throws MessagingException {
 		Properties mailProps = getMailProperties(port);
 		Session session = Session.getInstance(mailProps, null);
 		//session.setDebug(true);
 
-		MimeMessage msg = createMessage(session, from, to, subject, body);
+		MimeMessage msg = createMessage(session, from, to, subject, body, recipientType);
 		Transport.send(msg);
 	}
 
 	private MimeMessage createMessage(
-			Session session, String from, String to, String subject, String body) throws MessagingException {
+			Session session, String from, String to, String subject, String body, Message.RecipientType recipientType) throws MessagingException {
 		MimeMessage msg = new MimeMessage(session);
 		msg.setFrom(new InternetAddress(from));
 		msg.setSubject(subject);
 		msg.setSentDate(new Date());
 		msg.setText(body);
-		msg.setRecipient(Message.RecipientType.TO, new InternetAddress(to));
+		if (to.contains(",")) {
+			val addresses = to.split(",");
+			for (String address : addresses) {
+				msg.addRecipient(recipientType, new InternetAddress(address));
+			}
+		} else {
+			msg.setRecipient(recipientType, new InternetAddress(to));
+		}
 		return msg;
 	}
 }

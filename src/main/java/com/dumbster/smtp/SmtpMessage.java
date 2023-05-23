@@ -17,6 +17,8 @@
  */
 package com.dumbster.smtp;
 
+import lombok.val;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -24,6 +26,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedList;
 
 /**
  * Container for a complete SMTP message - headers and message body.
@@ -33,21 +36,26 @@ public class SmtpMessage {
 	private Map<String, List<String>> headers;
 	/** Message body. */
 	private StringBuilder body;
+	/** Recipients (read from envelope) */
+	private List<String> recipients;
 
 	/** Constructor. Initializes headers Map and body buffer. */
 	public SmtpMessage() {
 		headers = new LinkedHashMap<>(10);
 		body = new StringBuilder();
+		recipients = new LinkedList<>();
 	}
 
 	/**
 	 * Update the headers or body depending on the SmtpResponse object and line of input.
 	 *
-	 * @param response SmtpResponse object
-	 * @param params   remainder of input line after SMTP command has been removed
-	 */
-	public void store(SmtpResponse response, String params) {
+     * @param request  SmtpRequest object
+     * @param response SmtpResponse object
+     */
+	public void store(SmtpRequest request, SmtpResponse response) {
+		String params = request.getParams();
 		if (params != null) {
+			// switch over next state
 			if (SmtpState.DATA_HDR.equals(response.getNextState())) {
 				int headerNameEnd = params.indexOf(':');
 				if (headerNameEnd >= 0) {
@@ -58,7 +66,54 @@ public class SmtpMessage {
 			} else if (SmtpState.DATA_BODY == response.getNextState()) {
 				body.append(params);
 			}
+
+			// switch over action
+			if (SmtpActionType.RCPT == request.getAction()) {
+				recipients.add(params);
+			}
 		}
+	}
+
+	/**
+	 * @return a List of the recipients of this message (from the SMTP envelope)
+	 */
+	public List<String> getRecipients() {
+		return Collections.unmodifiableList(recipients);
+	}
+
+	public List<String> getToRecipients() {
+		val toRecipientsFromHeader = getHeaderValues("To");
+		return recipientEmailAddresses(toRecipientsFromHeader);
+	}
+
+	public List<String> getCcRecipients() {
+		val toRecipientsFromHeader = getHeaderValues("Cc");
+		return recipientEmailAddresses(toRecipientsFromHeader);
+	}
+
+	private List<String> recipientEmailAddresses(List<String> recipientsFromHeader) {
+		val allRecipients = Collections.unmodifiableList(recipients);
+		final List<String> toRecipients = new ArrayList<>();
+		for (String recipient : recipientsFromHeader) {
+			final String recipientFormat = emailToRecipientFormat(recipient);
+			if (allRecipients.contains(recipientFormat)) {
+				toRecipients.add(recipientFormat);
+			}
+		}
+		return toRecipients;
+	}
+
+	public List<String> getBccRecipients() {
+		val recipientsToReturn = new ArrayList<>(recipients);
+		final List<String> toAndCcRecipients = new ArrayList<>();
+		toAndCcRecipients.addAll(getToRecipients());
+		toAndCcRecipients.addAll(getCcRecipients());
+		recipientsToReturn.removeAll(toAndCcRecipients);
+		return recipientsToReturn;
+	}
+
+	private String emailToRecipientFormat(final String email) {
+		return "<" + email + ">";
 	}
 
 	/**
